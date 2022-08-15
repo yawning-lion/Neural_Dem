@@ -40,7 +40,7 @@ matrix_append_latent=vmap(batch_append_latent,in_axes=(None,0))
 
 
 def plot_SDF(nn, latent_code, boundary_point, shape, mode):
-	step=0.01
+	step=0.02
 	boundary = boundary_point[shape]
 	x = onp.arange(-3,3,step)
 	y = onp.arange(-3,3,step)

@@ -161,7 +161,7 @@ def supervised_point_generator(num_shape, num_point, num_division):
     '''
     radius_samples = generate_radius_samples(num_shape, num_division)
     batch_boundary_points = compute_boundary_points(radius_samples)
-    onp.save('/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/train_boundary_point.npy', batch_boundary_points)
+    onp.save('/data/data_set/train_boundary_point.npy', batch_boundary_points)
     point_tmp = onp.random.uniform(-2, 2, size = (num_point, 2))
     x = point_tmp[:, 0]
     y = point_tmp[:, 1]# should be replaced by batched eikonal point
@@ -195,7 +195,7 @@ def infer_data_generator(num_shape, num_division, num_disturb = 5):
 	radius_samples = generate_radius_samples(num_shape, num_division)
 	batch_boundary_points = compute_boundary_points(radius_samples)
 	#print(batch_boundary_points)
-	onp.save('/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/infer_boundary_point.npy',
+	onp.save('/data/data_set/infer_boundary_point.npy',
     		batch_boundary_points)
 	shape = batch_boundary_points.shape
 	size_len = shape[0] * shape[1]
@@ -213,12 +213,12 @@ def infer_data_generator(num_shape, num_division, num_disturb = 5):
 	infer_data = np.concatenate([disturbed_data, infer_boundary], 0)
 	print(infer_data.shape)
 	print(infer_data[0])
-	onp.save('/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/infer_data.npy', 
+	onp.save('/data/data_set/infer_data.npy', 
 			infer_boundary)
 	
 
 if __name__ == "__main__":
     supervised_data = supervised_point_generator(args.num_shape_train, args.num_point, args.num_division)
-    onp.save('/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/supervised_data.npy', supervised_data)
+    onp.save('/data/data_set/supervised_data.npy', supervised_data)
     infer_data_generator(args.num_shape_infer, args.num_division)
     print('date prepared')

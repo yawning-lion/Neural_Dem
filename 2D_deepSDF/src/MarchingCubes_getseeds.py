@@ -70,7 +70,7 @@ def MarchingCubes_get_pins(step, bound, nn, latent):
     return pin_batch
  
 def MarchingCubes_getseeds_loop(step, bound, mode, num_seeds):
-    file_read = open("/gpfs/share/home/1900011026/2D_deepSDF/data/model/{}ed_params.txt".format(mode), "rb")
+    file_read = open("data/model/{}ed_params.txt".format(mode), "rb")
     params = pickle.load(file_read)
     nn = params[1]
     latent_code = params[0]
@@ -80,18 +80,18 @@ def MarchingCubes_getseeds_loop(step, bound, mode, num_seeds):
         pin_batch = MarchingCubes_get_pins(step, bound, nn, latent_code[i])
         all_seeds = run_dichotomy_loop(pin_batch, latent_code[i], nn, 10)
         all_num = all_seeds.shape[0]
-        selector = onp.random.choice(np.arange(all_num), size = num_seeds, replace=False)
-        seeds = all_seeds[selector]
-        batch_seeds.append(seeds)
+        #selector = onp.random.choice(np.arange(all_num), size = num_seeds, replace=False)
+        #seeds = all_seeds[selector]
+        batch_seeds.append(all_seeds)
         print(f'{mode} shape {i} done')
-    batch_seeds = np.asarray(batch_seeds)
-    onp.save('/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/{}_seeds.npy'.format(mode), batch_seeds)
+    batch_seeds = onp.asarray(batch_seeds, dtype = object)
+    onp.save('data/data_set/{}_seeds.npy'.format(mode), batch_seeds)
     return batch_seeds  
     
 
 
 
 if __name__ == '__main__':
-    MarchingCubes_getseeds_loop(0.01,3,'train',400)
-    MarchingCubes_getseeds_loop(0.01,3,'infer',400)
+    MarchingCubes_getseeds_loop(0.05,3,'train',400)
+    #MarchingCubes_getseeds_loop(0.01,3,'infer',400)
     

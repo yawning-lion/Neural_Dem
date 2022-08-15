@@ -21,7 +21,7 @@ config['num_shape'] = args.num_shape_train
 
 infer_cofig = {
     'num_shape' : 3,
-    'mesh_path':'/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/data_set/sphere.msh'
+    'mesh_path':'/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/data_set/sphere.msh'
 }
 
 infer_cofig['num_shape'] = args.num_shape_infer
@@ -158,40 +158,29 @@ def from_spherical_to_catesian(spherical):
 
 vmap_from_spherical_to_catesian = jit(vmap(from_spherical_to_catesian, in_axes = 0, out_axes = 0))
 
-'''
+
 def get_query(Min, Max, config):
     lower = np.where((Min - 0.3) > 0, Min - 0.3, 0)
     upper = Max + 0.3
-    r_query = onp.random.uniform(lower, upper, (config['num_query'], 1))
-    onp.random.shuffle(r_query)
-    theta_query = onp.random.uniform(0, pi, (config['num_query'], 1))
-    onp.random.shuffle(theta_query)
-    phi_query = onp.random.uniform( 0, 2 * pi, (config['num_query'], 1))
-    onp.random.shuffle(phi_query)
+    r_query = random.uniform(key, (config['num_query'], 1), 'float64', lower, upper)
+    theta_query = random.uniform(key, (config['num_query'], 1), 'float64', 0, pi)
+    phi_query = random.uniform(key, (config['num_query'], 1), 'float64', 0, 2 * pi)
     sphere_query = np.concatenate([r_query, theta_query, phi_query], 1)
     query = vmap_from_spherical_to_catesian(sphere_query)
     return query
-'''
 
-def get_query (Min, Max, config):
-    query = onp.random.uniform(-3., 3., (config['num_query'], 3))
-    return query
-    
-vmap_get_query = vmap(get_query, in_axes = (0,0, None), out_axes = 0)
+
 
 #loop, because of the memory limit
 def get_supervised_data(config):
     radius = np.load('data/data_set/radius.npy')
-    batch_verts = np.load('data/data_set/train_batch_verts.npy')
+    batch_verts = np.load('data/data_set/batch_verts.npy')
     faces = np.load('data/data_set/faces.npy')
     Min = np.min(radius, 1).reshape(config['num_shape'], )
     Max = np.max(radius, 1).reshape(config['num_shape'], )
-    query = []
-    for i in range(config['num_shape']):
-        single_query = get_query(Min[i], Max[i], config)
-        query.append(single_query)
-        
-    query = np.asarray(query)
+    query = vmap_get_query(Min, Max, config)
+    np.save('data/data_set/test_query.npy', query)
+    '''
     Len = config['num_shape'] * config['num_query']
     batch_len = config['batch_size'] * config['num_query']
     batch_query = query[0:config['batch_size']]
@@ -211,7 +200,7 @@ def get_supervised_data(config):
     supervised_data = np.concatenate([query, shape_index, batch_sdf], 1)
     np.save('data/data_set/supervised_data.npy', supervised_data)
     print('{} entry has generated,sample here{}'.format(Len, supervised_data[0]))
-
+    '''
 
 
 def infer_data_generator(num_shape, num_division, ):

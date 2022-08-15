@@ -12,22 +12,22 @@ import meshio
 
 config = {
     'mesh_path':'sphere.msh',
-    'num_shape':3,
+    'num_shape':10,
     'mean':1
 }
 
 
 def get_mesh(config):
-    mesh = meshio.read('/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/data_set/sphere.msh')
+    mesh = meshio.read('/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/data_set/sphere.msh')
     faces = mesh.get_cells_type("triangle")
     points = mesh.points
     return np.array(points), np.array(faces)
 
 def kernel(x1, x2):
     l = 0.5
-    sigma = 0.1
+    sigma = 0.15
     x = x1 - x2
-    Range = 3.0
+    Range = 3
     return sigma**2 * np.exp(- (np.dot(x, x) / Range) / l**2)
 
 array_kernel = vmap(kernel, in_axes = (0, 0), out_axes = (0))
@@ -64,9 +64,9 @@ def get_batch_verts(config):
 
 def generate_particles(config):
     batch_verts, faces, radius = get_batch_verts(config)
-    np.save('data/data_set/radius.npy', radius)
-    np.save('data/data_set/batch_verts.npy', batch_verts)
-    np.save('data/data_set/faces.npy', faces)
+    np.save('data/temp_data/radius.npy', radius)
+    np.save('data/temp_data/batch_verts.npy', batch_verts)
+    np.save('data/temp_data/faces.npy', faces)
 
 points, faces = get_mesh(config)
 
@@ -82,7 +82,7 @@ def mesh_for_show(batch_verts, faces, shape):
   mesh = trimesh.Trimesh(vertices = v, faces = f)
   return mesh
 
-'''
-np_mesh = mesh_for_show(batch_verts, faces, 1)
-np_mesh.show()
-'''
+if __name__ == '__main__':
+    np_mesh = mesh_for_show(batch_verts, faces, 1)
+    np_mesh.show()
+    generate_particles(config)

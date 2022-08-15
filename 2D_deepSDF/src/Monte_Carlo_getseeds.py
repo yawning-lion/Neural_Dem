@@ -6,9 +6,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 from jax import grad, jit, vmap, value_and_grad
 from jax.scipy.special import logsumexp
-from jax.example_libraries import optimizers, stax
+from jax.experimental import optimizers, stax
 from jax.nn import selu,relu
-from jax.example_libraries.stax import Dense, Relu, Sigmoid, Softplus, Selu, Tanh, Identity, FanOut, FanInConcat
+from jax.experimental.stax import Dense, Relu, Sigmoid, Softplus, Selu, Tanh, Identity, FanOut, FanInConcat
 from jax.numpy import tanh
 from torch.utils.data import Dataset, DataLoader
 from jax import random

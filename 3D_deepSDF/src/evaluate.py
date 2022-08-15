@@ -22,8 +22,8 @@ from numpy import sin, cos, pi
 from .seeds_generator import run_refine_seeds_loop
 
 def read_data(mode):
-    boundary = np.load("/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/data_set/{}_batch_verts.npy".format(mode))
-    file_read = open("/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/model/{}ed_params.txt".format(mode), "rb")
+    boundary = np.load("/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/data_set/{}_batch_verts.npy".format(mode))
+    file_read = open("/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/model/{}ed_params.txt".format(mode), "rb")
     params = pickle.load(file_read)
     return boundary, params
 
@@ -37,7 +37,7 @@ def evaluate_and_report():
         batch_seeds.append(temp)
         evaluation[i] = np.linalg.norm(temp - boundary[i]) 
     batch_seeds = np.asarray(batch_seeds)
-    onp.save('/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/data_set/{}_seeds.npy'.format(mode), batch_seeds)   
+    onp.save('/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/data_set/{}_seeds.npy'.format(mode), batch_seeds)   
     mode = 'infer'
     boudary, params = read_data(mode)
     batch_seeds = []
@@ -46,8 +46,8 @@ def evaluate_and_report():
         evaluation[i + args.num_shape_train] = np.linalg.norm(temp - boundary[i])
         batch_seeds.append(temp)
     batch_seeds = np.asarray(batch_seeds)
-    onp.save('/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/data_set/{}_seeds.npy'.format(mode), batch_seeds)
-    onp.save("/home/ubuntu/DESKTOP/rsc/3D_deepSDF/data/evaluation.npy", evaluation)
+    onp.save('/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/data_set/{}_seeds.npy'.format(mode), batch_seeds)
+    onp.save("/home/yawnlion/Desktop/PYproject/3D_deepSDF/data/evaluation.npy", evaluation)
     print(evaluation)
     print("done")
 

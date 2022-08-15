@@ -24,6 +24,10 @@ config = {'data_path':'/gpfs/share/home/1900011026/2D_deepSDF/data/data_set/infe
         'mode':'infer',
         'loss_record_path':'/gpfs/share/home/1900011026/2D_deepSDF/data/model/infer_loss_record.npy'}
 
+args.batch_size = 320
+args.learning_rate = 0.005
+args.num_epochs = 2048
+
 
 def infer_loss(infer_latent, nn, in_array, sdf):
 	params = [infer_latent, nn]
