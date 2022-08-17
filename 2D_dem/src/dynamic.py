@@ -65,11 +65,11 @@ y,z=dynamic(R_list,V_list)
 end=time.perf_counter()
 t=end-start
 print(t)
-with open('test_y.npy', 'wb') as f:
+with open('data/test_y.npy', 'wb') as f:
     jnp.save(f,y)
 
 f.close()
-with open('test_z.npy','wb') as f:
+with open('data/test_z.npy','wb') as f:
     jnp.save(f,z)
     
 f.close()
