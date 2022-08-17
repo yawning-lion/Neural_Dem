@@ -5,6 +5,7 @@ import numpy as np
 #import matplotlib.pyplot as plt
 import copy
 #from mpl_toolkits.mplot3d import Axes3D
+import jax
 from jax import grad, jit, vmap, value_and_grad
 from jax.experimental import optimizers, stax
 from jax.nn import selu,relu
@@ -12,6 +13,7 @@ from jax.experimental.stax import Dense, Relu, Sigmoid, Softplus, Selu, Tanh, Id
 from jax.numpy import tanh
 #from torch.utils.data import Dataset, DataLoader
 from jax import random
+import jax.numpy as jnp
 import time
 import pickle
 import argparse
@@ -40,10 +42,8 @@ nn = params[1]
 latent_code = params[0]
 
 
-
-
 def single_shapeSDF(point, latent_code, nn):
-    in_array = np.concatenate((point, latent_code))
+    in_array = jnp.concatenate((point, latent_code))
     return batch_forward(nn, in_array)[0]
 
 def batch_shapeSDF(point_batch, latent_code, nn):
@@ -54,12 +54,19 @@ single_grad_shapeSDF = grad(single_shapeSDF)
 
 batch_grad_shapeSDF = vmap(single_grad_shapeSDF, in_axes=(0, None, None), out_axes=0)
 
+
+@jax.jit
 def shapeSDF(x, y, z):
-    if len(np.array([x, y, z]).shape) == 1:
-        return single_shapeSDF(np.array([x, y, z]), latent_code[shape_ind], nn)
-    else:
-        point_batch = np.concatenate((x, y, z), 1)
-        return batch_shapeSDF(point_batch, latent_code[shape_ind], nn)
+    return single_shapeSDF(jnp.array([x, y, z]), latent_code[shape_ind], nn)
+ 
+
+# def shapeSDF(x, y, z):
+#     if len(np.array([x, y, z]).shape) == 1:
+#         return single_shapeSDF(np.array([x, y, z]), latent_code[shape_ind], nn)
+#     else:
+#         point_batch = np.concatenate((x, y, z), 1)
+#         return batch_shapeSDF(point_batch, latent_code[shape_ind], nn)
+
 
 def grad_shapeSDF(x, y, z):
     if len(x) == 1:
@@ -97,56 +104,6 @@ def plane(x, y, z):
 
 def grad_plane(x, y, z):
     return np.array([1., 0., 0.])
-
-def quad_points_volume(density=4):
-    quad_points = []
-    step = 2 * REFERENCE_SIZE / density
-    for i in range(density):
-        for j in range(density):
-            for k in range(density):
-                quad_points.append(np.array([-REFERENCE_SIZE + step / 2. + i * step,  
-                                             -REFERENCE_SIZE + step / 2. + j * step, 
-                                             -REFERENCE_SIZE + step / 2. + k * step]))
-    return np.asarray(quad_points)
-
-def quad_points_surface(density=8):
-    step = 2 * REFERENCE_SIZE / density
-    weight = np.power(2 * REFERENCE_SIZE, 2) / np.power(density, 2)
-    points_collection = []
-    normal_vectors = []
-    for d in range(DIM):
-        for r in range(NUM_DIRECTIONS):
-            quad_points = np.zeros((np.power(density, 2), DIM))
-            for i in range(density):
-                for j in range(density):
-                    quad_points[i * density + j, d] = (2 * r - 1) * REFERENCE_SIZE
-                    quad_points[i * density + j, (d + 1) % DIM] = -REFERENCE_SIZE + step / 2. + i * step
-                    quad_points[i * density + j, (d + 2) % DIM] = -REFERENCE_SIZE + step / 2. + j * step
-            points_collection.append(quad_points)
-            normal_vector = np.zeros(DIM)
-            normal_vector[d] = (2 * r - 1) * REFERENCE_SIZE
-            normal_vectors.append(normal_vector)
-    return np.asarray(points_collection), np.asarray(normal_vectors), weight
-
-def divergence_free_functions(ref_point):
-    x = ref_point[0]
-    y = ref_point[1]
-    z = ref_point[2]
-    f0 = np.array([[1., 0., 0.], [0., 1., 0.], [0., 0., 1.]])
-    f1 = np.array([[z, 0., 0.], [0., z, 0.], [y, 0., 0.], [0., y, -z], [0., 0., y], [x, 0., -z], [0., x, 0.], [0., 0., x]])
-    f2 = np.array([[z*z, 0., 0.], [0., z*z, 0.], [y*z, 0., 0.], [0., 2*y*z, -z*z], [y*y, 0., 0.], [0., y*y, -2*y*z], [0., 0., y*y], 
-                   [2*x*z, 0, -z*z], [0., x*z, 0.], [x*y, 0., -y*z], [0, x*y, -x*z], [0., 0., x*y], [x*x, 0., -2*x*z], [0, x*x, 0], [0., 0., x*x]])
-
-    if ORDER == 0:
-        function_collection = f0
-    elif ORDER == 1:
-        function_collection = np.concatenate((f0, f1), axis=0)
-    elif ORDER == 2:
-        function_collection = np.concatenate((f0, f1, f2), axis=0)
-    else:
-        assert 0
-
-    return function_collection
 
 
 def level_set(point):
@@ -188,29 +145,6 @@ def grad_level_set(point):
     else:
         assert 0
 
-def normal_ref(ref_point, point_c, scale):
-    physical_point = to_physical(ref_point, point_c, scale)
-    grad = grad_level_set(physical_point)
-    return grad / np.linalg.norm(grad)
-
-def level_set_ref(ref_point, point_c, scale):
-    physical_point = to_physical(ref_point, point_c, scale)
-    return level_set(physical_point)
-
-def heaviside_ref(ref_point, point_c, scale):
-    physical_point = to_physical(ref_point, point_c, scale)
-    value = level_set(physical_point)
-    return heaviside(-value)
-
-def heaviside(value):
-    return 1 if value > 0 else 0
-
-def to_reference(physical_point, point_c, scale):
-    return (physical_point - point_c) / scale
-
-def to_physical(ref_point, point_c, scale):
-    return scale * ref_point + point_c
-
 def to_id_xyz(element_id, base):
     id_z = element_id % base
     element_id = element_id // base
@@ -242,11 +176,12 @@ def breakout_id(element_id, base):
                 new_ids.append(to_id(DIVISION * id_x + i, DIVISION * id_y + j, DIVISION * id_z + k, DIVISION * base))
     return new_ids
 
+
 def brute_force(base):
     ids_cut = []
     h = 2 * DOMAIN_SIZE / base
     for id_x in range(base):
-        print("id_x is {}".format(id_x))
+        print("id_x is {}, base = {}".format(id_x, base))
         print(len(ids_cut) / np.power(base, 3))
         for id_y in range(base):
             for id_z in range(base):
@@ -268,14 +203,6 @@ def is_cut(vertices):
         else:
             negative_flag = True
     return negative_flag and positive_flag, negative_flag, positive_flag
-
-
-def point_c_and_scale(element_id, base):
-    id_x, id_y, id_z = to_id_xyz(element_id, base)
-    h = 2 * DOMAIN_SIZE / base
-    point_c =  np.array([-DOMAIN_SIZE + (id_x + 1./2.) * h, -DOMAIN_SIZE + (id_y + 1./2.) * h, -DOMAIN_SIZE + (id_z + 1./2.) * h ])
-    scale = h / (2 * REFERENCE_SIZE)
-    return point_c, scale
 
 
 def generate_cut_elements():
@@ -305,93 +232,8 @@ def generate_cut_elements():
         print("refinement_level {}, length of inds {}".format(refinement_level + 1, len(ids_cut)))
 
     print("len of total_refinement_levels {}".format(len(total_refinement_levels)))
-    np.savez('data/numpy/sbi/{}_cut_element_ids.npz'.format(surface), ids=np.asarray(total_ids, dtype = object), refinement_level=total_refinement_levels, allow_pickle=True)
+    np.savez('data/numpy/sbi/{}_cut_element_ids.npz'.format(surface), ids=total_ids, refinement_level=total_refinement_levels, allow_pickle=True)
     return total_ids, total_refinement_levels
-
-
-def main():
-    data = np.load('data/numpy/sbi/{}_cut_element_ids.npz'.format(surface), allow_pickle=True)
-    total_ids = data['ids']
-    total_refinement_levels = data['refinement_level']
-    
-    index = -1
-    ids_cut = total_ids[index]
-    refinement_level = total_refinement_levels[index]
-    base = np.power(DIVISION, refinement_level)
-    h = 2 * DOMAIN_SIZE / base
-
-    print("refinement_level is {} with h being {}, number of elements cut is {}".format(refinement_level, h, len(ids_cut)))
-
-    ground_truth = 4 * np.pi
-    hmf_result = 0
-
-    if ORDER == 0:
-        K = 3 # number of divergence-free functions
-    elif ORDER == 1:
-        K = 11
-    elif ORDER == 2:
-        K = 26
-    else:
-        assert 0
-
-    quad_points_to_save = []
-    weights_to_save = []
-
-    for ele in range(0, len(ids_cut)):
-    # for ele in range(0, 3):
-        element_id = ids_cut[ele]
-
-        point_c, scale = point_c_and_scale(element_id, base)
-        q_points_v = quad_points_volume(ORDER + 2)
-        q_points_s, normal_vectors_s, weight_s = quad_points_surface(8)
-
-        N = len(q_points_v)
-        A = np.zeros((K, N))
-        for i, q_point_v in enumerate(q_points_v):
-            functions_v = divergence_free_functions(q_point_v)
-            normal_vectors_v = normal_ref(q_point_v, point_c, scale)
-            A[:, i] = np.sum(functions_v * normal_vectors_v, axis=1)
-
-        b = np.zeros(K)
-        for i, q_points_one_surface in enumerate(q_points_s):
-            normal_vector_s = normal_vectors_s[i]
-            for q_point_s in q_points_one_surface:
-                functions_s = divergence_free_functions(q_point_s)
-                h_value = heaviside_ref(q_point_s, point_c, scale)
-                for k in range(K):
-                    b[k] += -h_value * np.sum(functions_s[k] * normal_vector_s) * weight_s
-
-        U, s, Vh = np.linalg.svd(A, full_matrices=True)
-        S = np.diag([np.power(1./sigma, 2) if sigma > 1e-12 else 0 for sigma in s])
-
-        B = np.matmul(np.matmul(U, S), np.transpose(U))
-
-        # print(np.linalg.matrix_rank(B))
-
-        # quad_weights = np.dot(np.matmul(np.transpose(A), np.linalg.inv(np.matmul(A, np.transpose(A)))), b)
-        quad_weights = np.dot(np.matmul(np.transpose(A), B), b)
-        # print(b)
-        # print(quad_weights)
-        # print(np.max(quad_weights))
-        # print(np.min(quad_weights))
-        # print("\n")
-        hmf_result += np.sum(quad_weights) * np.power(scale, 2)
-        print("Progress {:.5f}%, contribution {:.5f}, current hmf_result is {:.5f}, and gt is {:.5f}".format((ele + 1)/len(ids_cut)*100,
-                                                                                                          np.sum(quad_weights), hmf_result, ground_truth)) 
-        quad_points_to_save.append(to_physical(q_points_v, point_c, scale))
-        weights_to_save.append(quad_weights * np.power(scale, 2))
-
-    case_no = 2 if surface == 'sphere' else 3
-    np.savetxt('data/dat/surface_integral/case_{}_quads.dat'.format(case_no), np.asarray(quad_points_to_save).reshape(-1, DIM))
-    np.savetxt('data/dat/surface_integral/case_{}_weights.dat'.format(case_no), np.asarray(weights_to_save).reshape(-1))
-
-    print("Error is {:.5f}".format(hmf_result - ground_truth))
-
-
-
-################################################################################################################################
-# Shifted boundary integration scheme
-################################################################################################################################
 
 
 def neighbors(element_id, base, h):
@@ -486,13 +328,12 @@ def process_face(face, base, h, quad_level):
     return mapped_quad_points, weights
 
 
-def compute_qw(quad_levels=[3], mesh_index=1, name='sbi_tests'):
+def compute_qw(quad_levels=[3], mesh_index=2, name='sbi_tests'):
     data = np.load('data/numpy/sbi/{}_cut_element_ids.npz'.format(surface), allow_pickle=True)
     total_ids = data['ids']
     total_refinement_levels = data['refinement_level']
 
     ids_cut = total_ids[mesh_index]
-    print(np.asarray(ids_cut).shape)
     refinement_level = total_refinement_levels[mesh_index]
     base = np.power(DIVISION, refinement_level)
     h = 2 * DOMAIN_SIZE / base
@@ -503,7 +344,6 @@ def compute_qw(quad_levels=[3], mesh_index=1, name='sbi_tests'):
         element_id = ids_cut[ele]
         faces += neighbors(element_id, base, h)
 
-    print(np.asarray(faces).shape)
     for quad_level in quad_levels:
         mapped_quad_points = []
         weights = []
@@ -519,13 +359,11 @@ def compute_qw(quad_levels=[3], mesh_index=1, name='sbi_tests'):
         print(np.sum(np.array(weights)))
 
         case_no = 2 if surface == 'sphere' else 3
-        np.savetxt('data/dat/surface_integral/sbi_case_{}_quads.dat'.format(case_no), np.asarray(mapped_quad_points).reshape(-1, DIM))
-        np.savetxt('data/dat/surface_integral/sbi_case_{}_weights.dat'.format(case_no), np.asarray(weights).reshape(-1))
 
-        # np.savetxt('data/dat/{}/sbi_case_{}_mesh_index_{}_quad_level_{}_quads.dat'.format(name, 
-        #     case_no, mesh_index, quad_level), np.asarray(mapped_quad_points).reshape(-1, DIM))
-        # np.savetxt('data/dat/{}/sbi_case_{}_mesh_index_{}_quad_level_{}_weights.dat'.format(name, 
-        #     case_no, mesh_index, quad_level), np.asarray(weights).reshape(-1))
+        np.savetxt('data/dat/{}/sbi_case_{}_mesh_index_{}_quad_level_{}_quads.dat'.format(name, 
+            case_no, mesh_index, quad_level), np.asarray(mapped_quad_points).reshape(-1, DIM))
+        np.savetxt('data/dat/{}/sbi_case_{}_mesh_index_{}_quad_level_{}_weights.dat'.format(name, 
+            case_no, mesh_index, quad_level), np.asarray(weights).reshape(-1))
 
 
 def test_function_0(points):
@@ -538,13 +376,15 @@ def convergence_tests(test_function_number=0):
     name_tests = 'sbi_tests'
     name_convergence = 'sbi_convergence'
     case_no = 2 if surface == 'sphere' else 3
-    quad_levels = np.arange(1, 4, 1)
-    mesh_indices =  np.arange(0, 3, 1)
+    # quad_levels = np.arange(1, 4, 1)
+    # mesh_indices =  np.arange(0, 3, 1)
+    quad_levels = np.arange(1, 3, 1)
+    mesh_indices =  np.arange(0, 2, 1)
     test_function = test_function_0 if test_function_number == 0 else test_function_1
     ground_truth = 4 * np.pi if test_function_number == 0 else 40. / 3. * np.pi
 
     cache = False
-    if cache:
+    if not cache:
         for mesh_index in mesh_indices:
             compute_qw(quad_levels, mesh_index, name_tests)
 
@@ -553,7 +393,7 @@ def convergence_tests(test_function_number=0):
         data = np.load('data/numpy/sbi/{}_cut_element_ids.npz'.format(surface), allow_pickle=True)
         total_ids = data['ids']
         total_refinement_levels = data['refinement_level']
-        ids_cut = total_ids[mesh_index]
+        # ids_cut = total_ids[mesh_index]
         refinement_level = total_refinement_levels[mesh_index]
         base = np.power(DIVISION, refinement_level)
         h = 2 * DOMAIN_SIZE / base * np.sqrt(3)
@@ -592,77 +432,8 @@ def convergence_tests(test_function_number=0):
     print(np.log(errors[0][0]/errors[0][1]) / np.log(mesh[0]/mesh[1]))
 
 
-def sbi_convergence_plot_single(test_function_number=0, size=0.65):
-    label_name = '$\\\\mathcal{{E}}_{{\\\\rm{{rel}}}}$'
-    gp.c('set terminal epslatex')
-    gp.c('set output "data/latex/sbi/test_function_{}.tex"'.format(test_function_number))
-
-    gp.c('set size {}, {}'.format(size, size))
-    # gp.c('set terminal qt ' + str(pore_number))
-
-    # gp.c('set title "Convergence tests" font ",14"')
-    gp.c('set xlabel "$h$"')
-    gp.c('set ylabel "{}"'.format(label_name))
-    # gp.c('set xtics font ",12"')
-    # gp.c('set ytics font ",12"')
-    gp.c('set style data linespoints')
-    # gp.c('set key top left')
-    gp.c('set logscale')
-    gp.c('set format y "$10^{%T}$"')
-    # gp.c('set xrange [0.01:0.2]')
-    # gp.c('set yrange [1e-8:1e-2]')
-    # gp.c('set autoscale')
-    gp.c('set lmargin 0.5')
-    gp.c('set rmargin 0.5')
-    gp.c('set bmargin 0.5')
-    gp.c('set tmargin 0.5')
-    gp.c('set size square')
-    gp.c('set xlabel offset 0,1')
-    gp.c('set ylabel offset 1,0')
-
-    quad_file_1 = 'data/dat/sbi_convergence/case_{}_quad_level_{}.dat'.format(test_function_number, 1)
-    quad_file_2 = 'data/dat/sbi_convergence/case_{}_quad_level_{}.dat'.format(test_function_number, 2)
-    quad_file_3 = 'data/dat/sbi_convergence/case_{}_quad_level_{}.dat'.format(test_function_number, 3)
-   
-    quad_array_1 = np.loadtxt(quad_file_1)
-    quad_array_2 = np.loadtxt(quad_file_2)
-    quad_array_3 = np.loadtxt(quad_file_3)
-
-    h_ratio = np.log((quad_array_1[0, 0] / quad_array_1[-1, 0]))
-
-    quad_ratio_1 = np.log((quad_array_1[0, 1] / quad_array_1[-1, 1]))
-    quad_ratio_2 = np.log((quad_array_2[0, 1] / quad_array_2[-1, 1]))
-    quad_ratio_3 = np.log((quad_array_3[0, 1] / quad_array_3[-1, 1]))
-
-    quad_ratio_1 = "Q 1x1 (OC={:.3f})".format(quad_ratio_1 / h_ratio)
-    quad_ratio_2 = "Q 2x2 (OC={:.3f})".format(quad_ratio_2 / h_ratio)
-    quad_ratio_3 = "Q 3x3 (OC={:.3f})".format(quad_ratio_3 / h_ratio)
-
-    plotting_command = 'plot "{}" u 1:2 title "{}" lc "red" pt 5 ps 2 lt 1 lw 4 , \
-            "{}" u 1:2 title "{}" lc "green" pt 9 ps 2 lt 1 lw 4, \
-            "{}" u 1:2 title "{}" lc "blue" pt 7 ps 2 lt 1 lw 4'.format(quad_file_1,
-                                                                        quad_ratio_1,
-                                                                        quad_file_2,
-                                                                        quad_ratio_2,
-                                                                        quad_file_3,
-                                                                        quad_ratio_3)            
-
-    gp.c(plotting_command)
-    gp.c('set out')
-
-
-def generate_sbi_convergence():
-    sbi_convergence_plot_single(test_function_number=0)
-    sbi_convergence_plot_single(test_function_number=1)
-
-
 if __name__ == '__main__':
     generate_cut_elements()
-    # brute_force(np.power(DIVISION, 6))
-    # main()
-    # print(np.sum(np.loadtxt('data/dat/surface_integral/case_{}_weights.dat'.format(2))))
-
-    #compute_qw()
+    # compute_qw()
     # convergence_tests()
-    #generate_sbi_convergence()
-    #plt.show()
+    # plt.show()
