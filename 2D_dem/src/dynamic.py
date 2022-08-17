@@ -8,7 +8,7 @@ from jax import random
 import numpy as np
 import time
 i32 = jnp.int32
-f32 = jnp.float64
+f64 = jnp.float64
 Array = jnp.ndarray
 #from matplotlib import pyplot as plt
 T_max:f32=10
@@ -16,8 +16,8 @@ T_max:f32=10
 Delta_t:f32=0.0001
 #最小时间间隔
 key = random.PRNGKey(374954787)
-boundary_space = jnp.asarray([10,10],dtype = f32)
-# V_list=random.uniform(key,(100,3),dtype=f32,minval=-0.5, maxval=0.5)
+boundary_space = jnp.asarray([10,10],dtype = f64)
+# V_list=random.uniform(key,(100,3),dtype=f64,minval=-0.5, maxval=0.5)
 
 # R_list = np.zeros((100,3),dtype = f32)
 # for i in range(100):
@@ -27,8 +27,8 @@ boundary_space = jnp.asarray([10,10],dtype = f32)
 #     R_list[i][1] = y+0.5
 
 #以上为对于初始位置和初始速度的设定，100个粒子
-V_list = jnp.asarray([[0.5,0,0],[-0.5,0,0]],dtype = f32)
-R_list = jnp.asarray([[5,5,0],[6,5,0]],dtype = f32)
+V_list = jnp.asarray([[0.5,0,0],[-0.5,0,0]],dtype = f64)
+R_list = jnp.asarray([[5,5,0],[6,5,0]],dtype = f64)
 
 #以上为对于初始位置和初始速度的设定，2个粒子
 
