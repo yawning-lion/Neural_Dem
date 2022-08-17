@@ -8,13 +8,13 @@ from jax import random
 import numpy as np
 import time
 
-with open('test_z.npy', 'rb') as f:
+with open('data/test_z.npy', 'rb') as f:
     z = jnp.load(f)
 T = jnp.power(z,2)
 T = jnp.sum(T,axis = 1).reshape(-1)
-with open('T.npy', 'wb') as f:
+with open('data/T.npy', 'wb') as f:
     jnp.save(f,T)
-with open('test_y.npy', 'rb') as f:
+with open('data/test_y.npy', 'rb') as f:
     y = jnp.load(f)
 
 v_list = []
