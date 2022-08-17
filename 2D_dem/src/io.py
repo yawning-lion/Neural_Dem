@@ -4,12 +4,12 @@ i32 = np.int32
 f64 = np.float64
 from matplotlib import pyplot as plt
 
-with open('V.npy', 'rb') as f:
+with open('data/V.npy', 'rb') as f:
 	v = np.load(f)*1*(2/3)
 
-# with open('V_list.npy', 'rb') as f:
+# with open('data/V_list.npy', 'rb') as f:
 #     V = np.load(f)
-with open('test_z.npy', 'rb') as f:
+with open('data/test_z.npy', 'rb') as f:
     z = np.load(f)
 T = np.power(z,2)
 T = np.sum(T,axis = 1).reshape(-1)*0.5
